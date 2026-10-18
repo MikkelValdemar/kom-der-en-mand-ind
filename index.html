@@ -58,6 +58,40 @@
 
       <section class="admin-section">
         <div class="section-head">
+          <h2>CPR-register hack</h2>
+          <label class="toggle"><input type="checkbox" data-path="breach.enabled"> <span>Enabled</span></label>
+        </div>
+        <p class="section-note">Shown right before the card. A correct code plays a fake hacking sequence. <code>{code}</code> in the help text is replaced by the code.</p>
+        <div class="grid">
+          <label class="field">
+            <span>Title</span>
+            <input data-path="breach.title" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Code</span>
+            <input data-path="breach.code" class="mono" autocomplete="off">
+          </label>
+          <label class="field span2">
+            <span>Help text</span>
+            <textarea data-path="breach.helpText" rows="2"></textarea>
+          </label>
+          <label class="field">
+            <span>Success text</span>
+            <textarea data-path="breach.successText" rows="2"></textarea>
+          </label>
+          <label class="field">
+            <span>Failure text</span>
+            <textarea data-path="breach.failureText" rows="2"></textarea>
+          </label>
+          <div class="field span2">
+            <span>Recording (plays when the hack screen opens)</span>
+            <div class="audio-row" data-audio="breach"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-section">
+        <div class="section-head">
           <h2>Final puzzle · Sundhedskort</h2>
           <label class="toggle"><input type="checkbox" data-path="final.enabled"> <span>Enabled</span></label>
         </div>

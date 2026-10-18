@@ -67,6 +67,7 @@
       puzzles: Array.isArray(raw.puzzles)
         ? raw.puzzles.map((p) => ({ ...blankPuzzle(), ...p }))
         : base.puzzles,
+      breach: { ...base.breach, ...(raw.breach || {}) },
       final: { ...base.final, ...(raw.final || {}) },
     };
   }
@@ -84,7 +85,22 @@
   const loadProgress = () => progress;
   const saveProgress = (index) => { progress = index; };
 
-  const stageCount = (cfg) => cfg.puzzles.length + (cfg.final.enabled ? 1 : 0);
+  const pad = (n) => String(n).padStart(2, "0");
+
+  // The game's stages in order: the puzzles, then the CPR-register hack, then the card.
+  function stagesOf(cfg) {
+    const stages = cfg.puzzles.map((puzzle, i) => ({
+      kind: "puzzle",
+      puzzle,
+      key: puzzle.id,
+      label: pad(i + 1),
+      name: `Puzzle ${roman(i + 1)}${puzzle.title ? " – " + puzzle.title : ""}`,
+    }));
+    if (cfg.breach.enabled) stages.push({ kind: "breach", key: "breach", label: "HACK", name: "CPR-register hack" });
+    if (cfg.final.enabled) stages.push({ kind: "final", key: "final", label: "CPR", name: "Final card (Sundhedskort)" });
+    return stages;
+  }
+  const stageCount = (cfg) => stagesOf(cfg).length;
 
   function parseColors(str) {
     const colors = String(str || "")
@@ -388,8 +404,6 @@
   let busy = false;
   let stageToken = 0;
 
-  const pad = (n) => String(n).padStart(2, "0");
-
   // Fills a node with invisible "ghost" text so the layout is final before typing starts.
   function setGhost(node, text) {
     node.replaceChildren(el("span", "typed"), el("span", "ghost", String(text ?? "")));
@@ -414,8 +428,8 @@
   }
 
   function renderNodes(solved) {
-    const n = stageCount(config);
-    const labels = Array.from({ length: n }, (_, k) => (config.final.enabled && k === n - 1 ? "CPR" : pad(k + 1)));
+    const labels = stagesOf(config).map((s) => s.label);
+    const n = labels.length;
     if ([...nodesEl.children].map((c) => c.textContent).join() !== labels.join()) {
       nodesEl.replaceChildren(...labels.map((label) => el("div", "node", label)));
     }
@@ -437,7 +451,7 @@
   }
 
   function showBanner(node, granted) {
-    node.textContent = granted ? "ACCESS GRANTED" : "ACCESS DENIED";
+    node.textContent = granted ? "KORREKT" : "FORKERT";
     node.dataset.text = node.textContent;
     node.className = "banner " + (granted ? "granted" : "denied");
     replay(node, "show");
@@ -463,8 +477,10 @@
   function renderGame({ animate = false } = {}) {
     config = loadConfig();
     stageToken++;
-    const n = stageCount(config);
+    const stages = stagesOf(config);
+    const n = stages.length;
     const index = Math.min(loadProgress(), n);
+    const current = stages[index];
     busy = false;
     activePin = null;
 
@@ -474,28 +490,34 @@
     renderNodes(index);
 
     let content;
-    let audioKey = null;
+    let audioKey = current?.key ?? null;
     if (index === 0 && !started && n > 0) {
       content = startPanel();
-    } else if (index < config.puzzles.length) {
-      content = puzzlePanel(config.puzzles[index], index);
-      audioKey = config.puzzles[index].id;
-    } else if (config.final.enabled) {
-      content = cardStage(index >= n);
+      audioKey = null;
+    } else if (current?.kind === "puzzle") {
+      content = puzzlePanel(current.puzzle, index);
+    } else if (current?.kind === "breach") {
+      content = breachPanel(index);
+    } else if (current?.kind === "final") {
+      content = cardStage(false);
+    } else if (stages[n - 1]?.kind === "final") {
+      content = cardStage(true);
       audioKey = "final";
     } else {
       content = endPanel(n === 0);
     }
 
+    // Scanlines are switched off while the card is shown so it stays sharp.
+    document.body.classList.toggle("card-mode", content.classList.contains("card-stage"));
     player.stop();
     swapStage(content, animate).then(() => content.onShow?.());
     if (audioKey) attachAudio(content, audioKey, index < n);
   }
 
-  function terminal(id, title) {
+  function terminal(id, title, status = "● SECURE") {
     const term = el("section", "term");
     const bar = el("div", "term-bar");
-    bar.append(el("span", "term-id", id), el("span", "term-title", title), el("span", "term-secure", "● SECURE"));
+    bar.append(el("span", "term-id", id), el("span", "term-title", title), el("span", "term-secure", status));
     const body = el("div", "term-body");
     term.append(bar, body);
     return { term, body };
@@ -556,8 +578,67 @@
     return term;
   }
 
-  function puzzlePanel(puzzle, index) {
-    const { term, body } = terminal(`LOCK ${pad(index + 1)}`, "/// encrypted");
+  function breachPanel(index) {
+    const b = config.breach;
+    const code = normalize(b.code) || "123456";
+    const panel = puzzlePanel({
+      title: b.title,
+      helpText: String(b.helpText || "").replaceAll("{code}", code),
+      answer: code,
+      charset: /\D/.test(code) ? "alnum" : "digits",
+      successText: b.successText,
+      failureText: b.failureText,
+    }, index, { id: "CPR-REG", bar: "/// restricted access", status: "⚠ RESTRICTED", solvedStatus: "● BREACHED", afterSolve: runHack });
+    panel.classList.add("breach");
+    return panel;
+  }
+
+  const SURNAMES = ["HANSEN", "JENSEN", "NIELSEN", "PEDERSEN", "ANDERSEN", "CHRISTENSEN", "LARSEN", "SØRENSEN", "RASMUSSEN", "JØRGENSEN", "PETERSEN", "MADSEN", "KRISTENSEN", "OLSEN"];
+  const hex = (len) => Array.from({ length: len }, () => "0123456789ABCDEF"[(Math.random() * 16) | 0]).join("");
+
+  // The fake "hacking" sequence shown after the CPR-register code is accepted.
+  async function runHack(log) {
+    const token = stageToken;
+    const alive = () => token === stageToken;
+    const line = (text, cls) => {
+      const node = el("div", "hack-line" + (cls ? " " + cls : ""), text);
+      log.append(node);
+      return node;
+    };
+    log.hidden = false;
+
+    for (const step of ["BYPASSING FIREWALL", "INJECTING PAYLOAD", "ESCALATING PRIVILEGES", "DECRYPTING CPR DATABASE"]) {
+      const node = line("> " + step + " ");
+      for (let i = 0; i < 10; i++) {
+        if (!alive()) return;
+        node.textContent += ".";
+        await wait(40);
+      }
+      node.append(el("span", "res", " OK"));
+    }
+
+    const bar = line("", "bar");
+    for (let p = 0; p <= 100; p += 4) {
+      if (!alive()) return;
+      bar.textContent = `[${"█".repeat(p / 4)}${"░".repeat(25 - p / 4)}] ${String(p).padStart(3)}%  DOWNLOADING RECORDS`;
+      await wait(55);
+    }
+
+    for (let i = 0; i < 34; i++) {
+      if (!alive()) return;
+      const name = SURNAMES[(Math.random() * SURNAMES.length) | 0];
+      line(`0x${hex(6)}  ██████-████  ${name.padEnd(12)} NO MATCH`, "dim");
+      await wait(38);
+    }
+    if (!alive()) return;
+    line("> MATCH FOUND :: 1 RECORD", "hit");
+    await wait(450);
+    line("> EXTRACTING SUNDHEDSKORT.DAT ... OK", "hit");
+    await wait(300);
+  }
+
+  function puzzlePanel(puzzle, index, extra = {}) {
+    const { term, body } = terminal(extra.id || `LOCK ${pad(index + 1)}`, extra.bar || "/// encrypted", extra.status);
     const title = el("h2", "puzzle-title");
     const help = el("p", "help");
     const banner = el("div", "banner");
@@ -571,7 +652,9 @@
     });
     activePin = pin;
 
-    body.append(audioButton(), title, help, el("div", "prompt", "ENTER ACCESS CODE"), pin.el, banner, message, actions);
+    const hackLog = el("div", "hack-log");
+    hackLog.hidden = true;
+    body.append(audioButton(), title, help, el("div", "prompt", "INDTAST KODE"), pin.el, banner, hackLog, message, actions);
     setGhost(title, puzzle.title);
     setGhost(help, puzzle.helpText);
     term.onShow = async () => {
@@ -603,7 +686,9 @@
       const token = stageToken;
       pin.setState("correct");
       term.classList.add("solved");
+      if (extra.solvedStatus) term.querySelector(".term-secure").textContent = extra.solvedStatus;
       showBanner(banner, true);
+      message.replaceChildren();
       unlockNode(index);
       saveProgress(index + 1);
 
@@ -611,12 +696,13 @@
         player.unlock();
         renderGame({ animate: true });
       };
-      if (puzzle.successText.trim()) {
+      if (puzzle.successText.trim() || extra.afterSolve) {
         const button = el("button", "btn", "Fortsæt");
         button.type = "button";
         button.addEventListener("click", next, { once: true });
         wait(500)
-          .then(() => showMessage(message, puzzle.successText, "ok"))
+          .then(() => extra.afterSolve?.(hackLog))
+          .then(() => token === stageToken && showMessage(message, puzzle.successText, "ok"))
           .then(() => {
             if (token !== stageToken) return;
             actions.append(button);
@@ -642,7 +728,6 @@
 
     const card = el("div", "hc");
     card.innerHTML = `
-      <div class="hc-sheen"></div>
       <div class="hc-region">
         <svg class="hc-logo" viewBox="0 0 48 48" aria-hidden="true">
           <rect width="48" height="48" fill="#e3e6f0"/>
@@ -883,6 +968,7 @@
         const hint = answerHint(p);
         if (hint.bad) errors.push(`Puzzle ${i + 1}: ${hint.text.toLowerCase()}`);
       });
+      if (draft.breach.enabled && !normalize(draft.breach.code)) errors.push("CPR-register hack: a code is required");
       if (draft.final.enabled && cprHint(draft.final).bad) errors.push("Final card: CPR must be 10 digits");
       return errors;
     }
@@ -991,14 +1077,13 @@
       reader.readAsDataURL(blob);
     });
 
-    const audioKeys = () => [...draft.puzzles.map((p) => p.id), "final"];
+    const audioKeys = () => [...draft.puzzles.map((p) => p.id), "breach", "final"];
 
     function renderProgress() {
-      const saved = loadConfig();
-      const n = stageCount(saved);
+      const stages = stagesOf(loadConfig());
+      const n = stages.length;
       const index = Math.min(loadProgress(), n);
-      const options = saved.puzzles.map((p, i) => [i, `Puzzle ${roman(i + 1)}${p.title ? " – " + p.title : ""}`]);
-      if (saved.final.enabled) options.push([saved.puzzles.length, "Final card (Sundhedskort)"]);
+      const options = stages.map((s, i) => [i, s.name]);
       options.push([n, "Finished"]);
 
       jumpSelect.replaceChildren(...options.map(([value, label]) => {

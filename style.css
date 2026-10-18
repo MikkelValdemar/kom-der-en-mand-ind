@@ -446,6 +446,34 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
   100% { opacity: 0; }
 }
 
+/* ---------- CPR-register hack ---------- */
+
+.term.breach { border-color: rgba(255, 61, 61, .55); box-shadow: 0 0 0 1px rgba(0, 0, 0, .7), 0 0 34px rgba(255, 61, 61, .16), inset 0 0 70px rgba(255, 61, 61, .05); }
+.term.breach .term-bar { background: var(--red); color: #1a0000; }
+.term.breach.solved { border-color: var(--fg); }
+.term.breach.solved .term-bar { background: var(--fg); color: var(--ink); }
+
+.hack-log {
+  height: 230px;
+  margin-top: 22px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  border: 1px solid var(--fg-line);
+  background: rgba(0, 0, 0, .55);
+  font-size: .82rem;
+  line-height: 1.55;
+  white-space: pre;
+  color: var(--fg-soft);
+}
+.hack-line { flex: none; overflow: hidden; text-overflow: ellipsis; }
+.hack-line .res { color: var(--fg); text-shadow: var(--glow); }
+.hack-line.bar { color: var(--fg); text-shadow: var(--glow); }
+.hack-line.dim { color: var(--fg-dim); }
+.hack-line.hit { color: var(--fg); font-weight: 600; text-shadow: var(--glow); }
+
 /* ---------- Audio replay button ---------- */
 
 .audio-btn {
@@ -542,20 +570,6 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
   opacity: 0;
 }
 .hc > * { position: absolute; z-index: 1; }
-
-.hc > .hc-sheen {
-  inset: 0;
-  z-index: 2;
-  border-radius: inherit;
-  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .22) 45%, transparent 60%);
-  background-size: 250% 100%;
-  animation: sheen 7s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes sheen {
-  0%, 100% { background-position: 100% 0; }
-  50% { background-position: 0% 0; }
-}
 
 .hc-region {
   left: 6.9cqi;
@@ -752,6 +766,8 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
 
 body.is-admin #rain { opacity: .05; }
 body.is-admin .crt { display: none; }
+body.card-mode .crt { background: radial-gradient(ellipse 85% 80% at 50% 50%, transparent 55%, rgba(0, 0, 0, .8) 100%); }
+body.card-mode .crt::before, body.card-mode .crt::after { display: none; }
 
 #admin {
   position: relative;
@@ -929,5 +945,5 @@ body.is-admin .crt { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .crt::before, .crt::after, .game-title::before, .game-title::after, .hc-sheen { animation: none; }
+  .crt::before, .crt::after, .game-title::before, .game-title::after { animation: none; }
 }

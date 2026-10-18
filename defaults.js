@@ -32,6 +32,14 @@ window.DEFAULT_CONFIG = {
       failureText: "Wrong moment. The timelock holds.",
     },
   ],
+  breach: {
+    enabled: true,
+    title: "CPR-registret",
+    helpText: "Den sidste fil ligger i CPR-registret.\nHack CPR-registret med koden {code}.",
+    code: "123456",
+    successText: "Adgang til CPR-registret opnået.",
+    failureText: "Adgang nægtet. Forsøget er logget.",
+  },
   final: {
     enabled: true,
     helpText: "One last file is still encrypted.\nWhose record is this – and what is their number?",
