@@ -6,23 +6,17 @@
   <title>The Sealed Chamber</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="ambience" aria-hidden="true">
-    <div class="glow g1"></div>
-    <div class="glow g2"></div>
-    <div class="glow g3"></div>
-    <div class="embers"></div>
-    <div class="vignette"></div>
-    <div class="noise"></div>
-  </div>
+  <canvas id="rain" aria-hidden="true"></canvas>
 
   <main id="game">
     <header class="game-head">
       <h1 id="game-title" class="game-title"></h1>
-      <div id="candles" class="candles"></div>
+      <div id="nodes" class="nodes"></div>
+      <div id="game-status" class="game-status"></div>
     </header>
     <div id="stage" class="stage"></div>
   </main>
@@ -171,6 +165,7 @@
     </div>
   </section>
 
+  <div class="crt" aria-hidden="true"></div>
   <canvas id="confetti" aria-hidden="true"></canvas>
 
   <script src="defaults.js"></script>

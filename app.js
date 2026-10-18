@@ -380,42 +380,72 @@
 
   const stage = $("#stage");
   const titleEl = $("#game-title");
-  const candlesEl = $("#candles");
-  const CANDLE_HEIGHTS = [34, 27, 39, 30, 36, 25, 33];
+  const statusEl = $("#game-status");
+  const nodesEl = $("#nodes");
 
   let config = loadConfig();
   let activePin = null;
   let busy = false;
+  let stageToken = 0;
 
-  function renderCandles(solved) {
-    const n = stageCount(config);
-    if (candlesEl.children.length !== n) {
-      candlesEl.replaceChildren();
-      for (let k = 0; k < n; k++) {
-        const candle = el("div", "candle");
-        candle.style.setProperty("--h", CANDLE_HEIGHTS[k % CANDLE_HEIGHTS.length] + "px");
-        candle.append(el("div", "flame"), el("div", "wick"), el("div", "wax"), el("div", "dish"));
-        candlesEl.append(candle);
-      }
+  const pad = (n) => String(n).padStart(2, "0");
+
+  // Fills a node with invisible "ghost" text so the layout is final before typing starts.
+  function setGhost(node, text) {
+    node.replaceChildren(el("span", "typed"), el("span", "ghost", String(text ?? "")));
+  }
+
+  // Types text into a node one character at a time; stops quietly if the stage changes.
+  async function typeText(node, text, speed = 28) {
+    const token = stageToken;
+    text = String(text ?? "");
+    setGhost(node, text);
+    if (!text) return;
+    const [typed, ghost] = node.children;
+    node.classList.add("typing");
+    for (let i = 1; i <= text.length; i++) {
+      if (token !== stageToken) return;
+      typed.textContent = text.slice(0, i);
+      ghost.textContent = text.slice(i);
+      const ch = text[i - 1];
+      await wait(ch === "\n" ? speed * 8 : /[.,!?:]/.test(ch) ? speed * 4 : speed);
     }
-    [...candlesEl.children].forEach((c, k) => {
-      c.classList.toggle("lit", k < solved);
-      c.classList.toggle("current", k === solved);
+    node.classList.remove("typing");
+  }
+
+  function renderNodes(solved) {
+    const n = stageCount(config);
+    const labels = Array.from({ length: n }, (_, k) => (config.final.enabled && k === n - 1 ? "CPR" : pad(k + 1)));
+    if ([...nodesEl.children].map((c) => c.textContent).join() !== labels.join()) {
+      nodesEl.replaceChildren(...labels.map((label) => el("div", "node", label)));
+    }
+    [...nodesEl.children].forEach((node, k) => {
+      node.classList.toggle("lit", k < solved);
+      node.classList.toggle("current", k === solved);
     });
+    statusEl.textContent = n ? `${pad(Math.min(solved, n))}/${pad(n)} LOCKS BREACHED` : "";
   }
 
-  function lightCandle(k) {
-    const candle = candlesEl.children[k];
-    if (!candle) return;
-    candle.classList.remove("current");
-    candle.classList.add("lit");
-    replay(candle, "igniting", 1500);
+  function unlockNode(k) {
+    const node = nodesEl.children[k];
+    if (!node) return;
+    node.classList.remove("current");
+    node.classList.add("lit");
+    replay(node, "unlocking", 1200);
+    const n = stageCount(config);
+    statusEl.textContent = `${pad(k + 1)}/${pad(n)} LOCKS BREACHED`;
   }
 
-  function showMessage(node, text, kind) {
-    node.textContent = text || "";
+  function showBanner(node, granted) {
+    node.textContent = granted ? "ACCESS GRANTED" : "ACCESS DENIED";
+    node.dataset.text = node.textContent;
+    node.className = "banner " + (granted ? "granted" : "denied");
+    replay(node, "show");
+  }
+
+  function showMessage(node, text, kind, speed = 22) {
     node.className = "message " + kind;
-    if (text) replay(node, "show");
+    return typeText(node, text, speed);
   }
 
   async function swapStage(content, animate) {
@@ -424,7 +454,7 @@
     const old = stage.firstElementChild;
     if (old && animate) {
       old.classList.add("leaving");
-      await wait(480);
+      await wait(420);
     }
     stage.replaceChildren(scene);
     activePin?.focus();
@@ -432,14 +462,16 @@
 
   function renderGame({ animate = false } = {}) {
     config = loadConfig();
+    stageToken++;
     const n = stageCount(config);
     const index = Math.min(loadProgress(), n);
     busy = false;
     activePin = null;
 
     titleEl.textContent = config.title;
+    titleEl.dataset.text = config.title;
     document.title = config.title || "Escape";
-    renderCandles(index);
+    renderNodes(index);
 
     let content;
     let audioKey = null;
@@ -456,45 +488,82 @@
     }
 
     player.stop();
-    swapStage(content, animate);
+    swapStage(content, animate).then(() => content.onShow?.());
     if (audioKey) attachAudio(content, audioKey, index < n);
   }
 
+  function terminal(id, title) {
+    const term = el("section", "term");
+    const bar = el("div", "term-bar");
+    bar.append(el("span", "term-id", id), el("span", "term-title", title), el("span", "term-secure", "● SECURE"));
+    const body = el("div", "term-body");
+    term.append(bar, body);
+    return { term, body };
+  }
+
   function startPanel() {
-    const panel = panelShell();
+    const { term, body } = terminal("BOOT", "secure-shell v2.6");
+    const log = el("div", "boot-log");
+    const title = el("h2", "puzzle-title");
+    const help = el("p", "help");
     const actions = el("div", "actions");
     const button = el("button", "btn", "Begynd");
     button.type = "button";
+    button.hidden = true;
     button.addEventListener("click", () => {
       started = true;
       player.unlock();
       renderGame({ animate: true });
     }, { once: true });
     actions.append(button);
-    panel.append(
-      el("div", "eyebrow", "Velkommen"),
-      el("h2", "puzzle-title", config.introTitle),
-      el("div", "ornament", "❦"),
-      el("p", "help", config.introText),
-      actions,
-    );
-    setTimeout(() => button.focus({ preventScroll: true }), 100);
-    return panel;
-  }
+    body.append(log, title, help, actions);
+    setGhost(title, config.introTitle);
+    setGhost(help, config.introText);
 
-  function panelShell() {
-    const panel = el("section", "panel");
-    for (const corner of ["tl", "tr", "bl", "br"]) panel.append(el("span", "rivet " + corner));
-    return panel;
+    const lines = [
+      ["INITIALIZING SECURE SHELL", "OK"],
+      ["LOADING DECRYPTION MODULES", "OK"],
+      ["ESTABLISHING CONNECTION", "OK"],
+      ["SCANNING FOR LOCKS", `${stageCount(config)} FOUND`],
+    ];
+
+    term.onShow = async () => {
+      const token = stageToken;
+      for (const [text, result] of lines) {
+        const line = el("div", "boot-line");
+        const label = el("span", "label");
+        const dots = el("span", "dots");
+        const res = el("span", "res", result);
+        res.hidden = true;
+        line.append(label, dots, res);
+        log.append(line);
+        await typeText(label, "> " + text, 14);
+        for (let i = 0; i < 8; i++) {
+          if (token !== stageToken) return;
+          dots.textContent += " . . .";
+          await wait(45);
+        }
+        res.hidden = false;
+        await wait(140);
+      }
+      if (token !== stageToken) return;
+      await typeText(title, config.introTitle, 45);
+      await typeText(help, config.introText, 24);
+      if (token !== stageToken) return;
+      button.hidden = false;
+      button.focus({ preventScroll: true });
+    };
+    return term;
   }
 
   function puzzlePanel(puzzle, index) {
-    const panel = panelShell();
+    const { term, body } = terminal(`LOCK ${pad(index + 1)}`, "/// encrypted");
+    const title = el("h2", "puzzle-title");
+    const help = el("p", "help");
+    const banner = el("div", "banner");
     const message = el("p", "message");
     message.setAttribute("aria-live", "polite");
     const actions = el("div", "actions");
-    const seal = el("div", "seal");
-    seal.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="4.2"/><path d="M10.2 11.5 8.8 20h6.4l-1.4-8.5z"/></svg>';
 
     const pin = createPinInput({
       groups: [Math.max(1, normalize(puzzle.answer).length)],
@@ -502,17 +571,13 @@
     });
     activePin = pin;
 
-    panel.append(
-      audioButton(),
-      el("div", "eyebrow", roman(index + 1)),
-      el("h2", "puzzle-title", puzzle.title),
-      el("div", "ornament", "❦"),
-      el("p", "help", puzzle.helpText),
-      pin.el,
-      message,
-      actions,
-      seal,
-    );
+    body.append(audioButton(), title, help, el("div", "prompt", "ENTER ACCESS CODE"), pin.el, banner, message, actions);
+    setGhost(title, puzzle.title);
+    setGhost(help, puzzle.helpText);
+    term.onShow = async () => {
+      await typeText(title, puzzle.title, 45);
+      await typeText(help, puzzle.helpText, 22);
+    };
 
     pin.onComplete((value) => {
       if (busy) return;
@@ -521,22 +586,25 @@
 
       if (normalize(value) !== normalize(puzzle.answer)) {
         pin.setState("wrong");
+        showBanner(banner, false);
         showMessage(message, puzzle.failureText, "fail");
-        replay(panel, "wrong", 900);
+        replay(term, "wrong", 700);
+        replay(document.body, "glitch", 500);
         setTimeout(() => {
           pin.clear();
           pin.setState("");
           pin.lock(false);
           pin.focus();
           busy = false;
-        }, 850);
+        }, 900);
         return;
       }
 
+      const token = stageToken;
       pin.setState("correct");
-      panel.classList.add("solved");
-      showMessage(message, puzzle.successText, "ok");
-      lightCandle(index);
+      term.classList.add("solved");
+      showBanner(banner, true);
+      unlockNode(index);
       saveProgress(index + 1);
 
       const next = () => {
@@ -547,23 +615,28 @@
         const button = el("button", "btn", "Fortsæt");
         button.type = "button";
         button.addEventListener("click", next, { once: true });
-        setTimeout(() => {
-          actions.append(button);
-          button.focus({ preventScroll: true });
-        }, 700);
+        wait(500)
+          .then(() => showMessage(message, puzzle.successText, "ok"))
+          .then(() => {
+            if (token !== stageToken) return;
+            actions.append(button);
+            button.focus({ preventScroll: true });
+          });
       } else {
         setTimeout(next, 1900);
       }
     });
 
-    panel.addEventListener("click", () => pin.focus());
-    return panel;
+    term.addEventListener("click", () => pin.focus());
+    return term;
   }
 
   function cardStage(solved) {
     const f = config.final;
     const wrap = el("section", "card-stage");
-    const help = el("p", "card-help", f.helpText);
+    const head = el("div", "card-head");
+    const help = el("p", "card-help");
+    const banner = el("div", "banner");
     const message = el("p", "message");
     message.setAttribute("aria-live", "polite");
 
@@ -615,22 +688,46 @@
     const groups = answer.length === 10 ? [6, 4] : [Math.max(1, answer.length)];
     const pin = createPinInput({ groups, charset: "digits", variant: "card" });
     card.querySelector(".hc-cpr").append(pin.el);
-    wrap.append(help, audioButton(), card, message);
+    wrap.append(head, help, audioButton(), card, banner, message);
+
+    const headText = "> DECRYPTING RECORD :: SUNDHEDSKORT.DAT";
+    setGhost(head, headText);
+    setGhost(help, f.helpText);
 
     const win = (celebrate) => {
       pin.setValue(answer);
       pin.lock(true);
       pin.setState("correct");
       card.classList.add("won");
-      showMessage(message, f.successText, "ok");
+      showBanner(banner, true);
+      showMessage(message, f.successText, "ok", 60);
       setTimeout(() => message.scrollIntoView({ behavior: "smooth", block: "nearest" }), 400);
       if (celebrate) setTimeout(() => confetti.celebrate(parseColors(f.confettiColors)), 250);
     };
 
+    const reveal = () => {
+      card.classList.add("revealed");
+      setTimeout(() => card.classList.add("done"), 1400);
+    };
+
     if (solved) {
-      win(true);
+      card.classList.add("revealed", "done");
+      wrap.onShow = () => {
+        setGhost(head, "");
+        head.textContent = headText;
+        setGhost(help, "");
+        help.textContent = f.helpText;
+        win(true);
+      };
       return wrap;
     }
+
+    wrap.onShow = async () => {
+      await typeText(head, headText, 18);
+      reveal();
+      await wait(900);
+      await typeText(help, f.helpText, 22);
+    };
 
     activePin = pin;
     pin.onComplete((value) => {
@@ -639,15 +736,17 @@
       pin.lock(true);
 
       if (normalize(value) === answer) {
-        lightCandle(stageCount(config) - 1);
+        unlockNode(stageCount(config) - 1);
         saveProgress(stageCount(config));
         win(true);
         return;
       }
 
       pin.setState("wrong");
+      showBanner(banner, false);
       showMessage(message, f.failureText, "fail");
       replay(card, "wrong", 900);
+      replay(document.body, "glitch", 500);
       setTimeout(() => {
         pin.clear();
         pin.setState("");
@@ -678,19 +777,14 @@
   }
 
   function endPanel(empty) {
-    const panel = panelShell();
-    panel.append(
-      el("div", "eyebrow", "Finis"),
-      el("h2", "puzzle-title", empty ? "Kammeret er tomt" : "Kammeret er åbent"),
-      el("div", "ornament", "❦"),
-    );
-    if (!empty) {
-      const seal = el("div", "seal");
-      seal.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="4.2"/><path d="M10.2 11.5 8.8 20h6.4l-1.4-8.5z"/></svg>';
-      panel.append(seal);
-      panel.classList.add("solved");
-    }
-    return panel;
+    const { term, body } = terminal("SYSTEM", "/// status");
+    const title = el("h2", "puzzle-title");
+    body.append(title);
+    const text = empty ? "NO LOCKS CONFIGURED" : "ALL LOCKS BREACHED";
+    setGhost(title, text);
+    term.onShow = () => typeText(title, text, 45);
+    if (!empty) term.classList.add("solved");
+    return term;
   }
 
   // Typing anywhere on the game screen goes to the code input.
@@ -702,17 +796,36 @@
     activePin.focus();
   });
 
-  function spawnEmbers() {
-    const host = $(".embers");
-    for (let i = 0; i < 22; i++) {
-      const ember = el("span", "ember");
-      ember.style.setProperty("--x", Math.random() * 100 + "%");
-      ember.style.setProperty("--s", (1.5 + Math.random() * 2.5).toFixed(1) + "px");
-      ember.style.setProperty("--d", (9 + Math.random() * 10).toFixed(1) + "s");
-      ember.style.setProperty("--delay", (-Math.random() * 18).toFixed(1) + "s");
-      ember.style.setProperty("--drift", ((Math.random() - 0.5) * 160).toFixed(0) + "px");
-      host.append(ember);
+  // Faint falling hex characters behind everything.
+  function startRain() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const canvas = $("#rain");
+    const ctx = canvas.getContext("2d");
+    const size = 18;
+    let cols = [];
+    let w = 0;
+    let h = 0;
+
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+      cols = Array.from({ length: Math.ceil(w / size) }, () => Math.floor(Math.random() * -60));
     }
+    window.addEventListener("resize", resize);
+    resize();
+
+    setInterval(() => {
+      ctx.fillStyle = "rgba(1, 5, 2, 0.14)";
+      ctx.fillRect(0, 0, w, h);
+      ctx.font = `${size}px VT323, monospace`;
+      cols.forEach((row, i) => {
+        if (row >= 0) {
+          ctx.fillStyle = Math.random() < 0.08 ? "#d6ffe0" : "#3dff6e";
+          ctx.fillText("0123456789ABCDEF"[(Math.random() * 16) | 0], i * size, row * size);
+        }
+        cols[i] = row * size > h && Math.random() > 0.97 ? Math.floor(Math.random() * -20) : row + 1;
+      });
+    }, 75);
   }
 
   /* ---------- Admin ---------- */
@@ -1100,6 +1213,6 @@
   });
 
   window.addEventListener("hashchange", route);
-  spawnEmbers();
+  startRain();
   route();
 })();
