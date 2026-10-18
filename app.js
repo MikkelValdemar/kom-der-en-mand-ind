@@ -96,8 +96,8 @@
       label: pad(i + 1),
       name: `Puzzle ${roman(i + 1)}${puzzle.title ? " – " + puzzle.title : ""}`,
     }));
-    if (cfg.breach.enabled) stages.push({ kind: "breach", key: "breach", label: "HACK", name: "CPR-register hack" });
-    if (cfg.final.enabled) stages.push({ kind: "final", key: "final", label: "CPR", name: "Final card (Sundhedskort)" });
+    if (cfg.breach.enabled) stages.push({ kind: "breach", key: "breach", label: "05", name: "CPR-register hack" });
+    if (cfg.final.enabled) stages.push({ kind: "final", key: "final", label: "???", name: "Final card (Sundhedskort)" });
     return stages;
   }
   const stageCount = (cfg) => stagesOf(cfg).length;
@@ -459,7 +459,7 @@
       node.classList.toggle("lit", k < solved);
       node.classList.toggle("current", k === solved);
     });
-    statusEl.textContent = n ? `${pad(Math.min(solved, n))}/${pad(n)} LOCKS BREACHED` : "";
+    statusEl.textContent = n ? `${pad(Math.min(solved, n))}/${pad(n)}` : "";
   }
 
   function unlockNode(k) {
@@ -469,7 +469,7 @@
     node.classList.add("lit");
     replay(node, "unlocking", 1200);
     const n = stageCount(config);
-    statusEl.textContent = `${pad(k + 1)}/${pad(n)} LOCKS BREACHED`;
+    statusEl.textContent = `${pad(k + 1)}/${pad(n)}`;
   }
 
   function showBanner(node, granted) {
@@ -611,7 +611,7 @@
       charset: /\D/.test(code) ? "alnum" : "digits",
       successText: b.successText,
       failureText: b.failureText,
-    }, index, { id: "CPR-REG", bar: "/// restricted access", status: "⚠ RESTRICTED", solvedStatus: "● BREACHED", afterSolve: runHack });
+    }, index, { id: "CPR-REG", bar: "/// TOP HEMMELIGT", status: "⚠ RESTRICTED", solvedStatus: "● BREACHED", afterSolve: runHack });
     panel.classList.add("breach");
     return panel;
   }
@@ -888,7 +888,7 @@
     const { term, body } = terminal("SYSTEM", "/// status");
     const title = el("h2", "puzzle-title");
     body.append(title);
-    const text = empty ? "NO LOCKS CONFIGURED" : "ALL LOCKS BREACHED";
+    const text = empty ? "NO LOCKS CONFIGURED" : "ALL";
     setGhost(title, text);
     term.onShow = () => typeText(title, text, 45);
     if (!empty) term.classList.add("solved");
