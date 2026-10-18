@@ -295,8 +295,11 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: clamp(6px, 1.4vw, 10px);
+  gap: clamp(3px, 1.2vw, 10px);
 }
+
+/* Box text scales with the number of boxes, so long grouped codes still fit on a phone. */
+.pin:not(.card) .slots { container-type: inline-size; }
 
 .slot {
   --i: 0;
@@ -309,7 +312,7 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
   border: 1px solid var(--fg-line);
   background: var(--fg-faint);
   font-family: var(--crt);
-  font-size: clamp(2rem, 6vw, 3.1rem);
+  font-size: clamp(1.1rem, calc(110cqi / var(--n, 4)), 3.1rem);
   color: var(--fg);
   text-shadow: var(--glow);
   transition: border-color .2s;
@@ -330,7 +333,7 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
   animation: caret 1s steps(2, jump-none) infinite;
 }
 
-.sep { font-family: var(--crt); font-size: 2rem; padding: 0 2px; }
+.sep { flex: none; font-family: var(--crt); font-size: clamp(1.3rem, 4vw, 2.2rem); padding: 0 1px; text-shadow: var(--glow); }
 
 .pin-input {
   position: absolute;

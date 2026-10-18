@@ -11,6 +11,12 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const normalize = (s) => String(s ?? "").replace(/[\s-]/g, "").toUpperCase();
+
+  // Dashes in an answer split the code boxes into groups: "1A-2B-3C" → [2, 2, 2].
+  function groupsOf(answer) {
+    const groups = String(answer ?? "").split("-").map((part) => normalize(part).length).filter(Boolean);
+    return groups.length ? groups : [1];
+  }
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   function el(tag, className, text) {
@@ -96,7 +102,7 @@
       label: pad(i + 1),
       name: `Puzzle ${roman(i + 1)}${puzzle.title ? " – " + puzzle.title : ""}`,
     }));
-    if (cfg.breach.enabled) stages.push({ kind: "breach", key: "breach", label: "05", name: "CPR-register hack" });
+    if (cfg.breach.enabled) stages.push({ kind: "breach", key: "breach", label: pad(cfg.puzzles.length + 1), name: "CPR-register hack" });
     if (cfg.final.enabled) stages.push({ kind: "final", key: "final", label: "???", name: "Final card (Sundhedskort)" });
     return stages;
   }
@@ -340,6 +346,7 @@
     const filter = CHARSET_FILTERS[charset] || CHARSET_FILTERS.alnum;
     const root = el("div", "pin" + (variant ? " " + variant : ""));
     const row = el("div", "slots");
+    row.style.setProperty("--n", total);
     const slots = [];
 
     groups.forEach((len, g) => {
@@ -669,10 +676,7 @@
     message.setAttribute("aria-live", "polite");
     const actions = el("div", "actions");
 
-    const pin = createPinInput({
-      groups: [Math.max(1, normalize(puzzle.answer).length)],
-      charset: puzzle.charset,
-    });
+    const pin = createPinInput({ groups: groupsOf(puzzle.answer), charset: puzzle.charset });
     activePin = pin;
 
     const hackLog = el("div", "hack-log");
@@ -972,6 +976,8 @@
       if (!v) return { text: "An answer is required", bad: true };
       if (p.charset === "digits" && /\D/.test(v)) return { text: "Contains letters – choose “Letters + digits”", bad: true };
       if (v.replace(CHARSET_FILTERS.alnum, "") !== v) return { text: "Only letters and digits can be typed", bad: true };
+      const groups = groupsOf(p.answer);
+      if (groups.length > 1) return { text: `${v.length} characters in ${groups.length} groups (${groups.join("-")})`, bad: false };
       return { text: `${v.length}-character code`, bad: false };
     }
 
