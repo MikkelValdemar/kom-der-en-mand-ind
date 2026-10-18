@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>The Sealed Chamber</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="ambience" aria-hidden="true">
+    <div class="glow g1"></div>
+    <div class="glow g2"></div>
+    <div class="glow g3"></div>
+    <div class="embers"></div>
+    <div class="vignette"></div>
+    <div class="noise"></div>
+  </div>
+
+  <main id="game">
+    <header class="game-head">
+      <h1 id="game-title" class="game-title"></h1>
+      <div id="candles" class="candles"></div>
+    </header>
+    <div id="stage" class="stage"></div>
+  </main>
+
+  <section id="admin" hidden>
+    <div class="admin-wrap">
+      <header class="admin-head">
+        <h1>Game master</h1>
+        <p>Settings are saved in this browser only. Use <em>Export</em> to keep a backup or move the setup to another device.</p>
+      </header>
+
+      <section class="admin-section">
+        <h2>General</h2>
+        <div class="grid">
+          <label class="field span2">
+            <span>Game title</span>
+            <input data-path="title" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Start screen heading</span>
+            <input data-path="introTitle" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Start screen text</span>
+            <textarea data-path="introText" rows="2"></textarea>
+          </label>
+        </div>
+        <p class="section-note">The start screen has a “Begynd” button. Browsers only allow sound after a click, so this is what lets the first recording play.</p>
+      </section>
+
+      <section class="admin-section">
+        <div class="section-head">
+          <h2>Puzzles</h2>
+          <button type="button" class="btn-admin" data-act="add">+ Add puzzle</button>
+        </div>
+        <p class="section-note">The code length is taken from the answer. Answers ignore upper/lower case, spaces and dashes.</p>
+        <div id="puzzle-list" class="puzzle-list"></div>
+      </section>
+
+      <section class="admin-section">
+        <div class="section-head">
+          <h2>Final puzzle · Sundhedskort</h2>
+          <label class="toggle"><input type="checkbox" data-path="final.enabled"> <span>Enabled</span></label>
+        </div>
+        <div class="grid">
+          <label class="field span2">
+            <span>Help text</span>
+            <textarea data-path="final.helpText" rows="2"></textarea>
+          </label>
+          <label class="field">
+            <span>CPR number (answer)</span>
+            <input data-path="final.cpr" class="mono" autocomplete="off" placeholder="DDMMYY-XXXX">
+            <small class="hint" id="cpr-hint"></small>
+          </label>
+          <div class="field">
+            <span>Recording (plays when the card appears)</span>
+            <div class="audio-row" data-audio="final"></div>
+          </div>
+          <label class="field">
+            <span>Name</span>
+            <input data-path="final.name" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Address (street, postcode + town)</span>
+            <textarea data-path="final.address" rows="2"></textarea>
+          </label>
+          <label class="field">
+            <span>Sikringsgruppe</span>
+            <input data-path="final.group" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Gyldig fra</span>
+            <input data-path="final.validFrom" autocomplete="off" placeholder="DD.MM.ÅÅÅÅ">
+          </label>
+          <label class="field">
+            <span>Doctor name (Læge)</span>
+            <input data-path="final.doctor" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Doctor address</span>
+            <input data-path="final.doctorAddress" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Doctor phone</span>
+            <input data-path="final.doctorPhone" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Region (top left)</span>
+            <textarea data-path="final.region" rows="2"></textarea>
+          </label>
+          <label class="field">
+            <span>Municipality (top right)</span>
+            <input data-path="final.municipality" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Municipality phone</span>
+            <input data-path="final.municipalityPhone" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Emergency number (empty = hidden)</span>
+            <input data-path="final.emergencyNumber" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Success text</span>
+            <textarea data-path="final.successText" rows="2"></textarea>
+          </label>
+          <label class="field">
+            <span>Failure text</span>
+            <textarea data-path="final.failureText" rows="2"></textarea>
+          </label>
+          <label class="field span2">
+            <span>Confetti colours (comma-separated)</span>
+            <input data-path="final.confettiColors" class="mono" autocomplete="off">
+            <small class="swatches" id="confetti-swatches"></small>
+          </label>
+        </div>
+      </section>
+
+      <section class="admin-section">
+        <h2>Progress</h2>
+        <p class="section-note" id="progress-info"></p>
+        <div class="row">
+          <select id="jump-select" aria-label="Jump to"></select>
+          <button type="button" class="btn-admin" data-act="jump">Jump there</button>
+          <button type="button" class="btn-admin" data-act="reset">Reset to start</button>
+        </div>
+      </section>
+
+      <section class="admin-section">
+        <h2>Backup</h2>
+        <div class="row">
+          <button type="button" class="btn-admin" data-act="export">Export JSON</button>
+          <button type="button" class="btn-admin" data-act="import">Import JSON</button>
+          <button type="button" class="btn-admin danger" data-act="defaults">Restore defaults</button>
+          <input type="file" id="import-file" accept="application/json,.json" hidden>
+          <input type="file" id="audio-file" accept="audio/*" hidden>
+        </div>
+        <p class="section-note">The export includes the recordings.</p>
+      </section>
+    </div>
+
+    <div class="admin-bar">
+      <span id="save-status" class="save-status" role="status"></span>
+      <button type="button" class="btn-admin" data-act="play">Save &amp; play from start</button>
+      <button type="button" class="btn-admin primary" data-act="save">Save</button>
+    </div>
+  </section>
+
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <script src="defaults.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
