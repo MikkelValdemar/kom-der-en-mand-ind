@@ -53,7 +53,7 @@
 
   // Each puzzle has a stable id so its recording follows it when puzzles are reordered.
   function blankPuzzle() {
-    return { id: newId(), title: "", helpText: "", answer: "", charset: "digits", successText: "", failureText: "" };
+    return { id: newId(), title: "", helpText: "", answer: "", charset: "digits", successText: "", failureText: "", audioFile: "" };
   }
 
   function normalizeConfig(raw) {
@@ -235,6 +235,21 @@
     };
   })();
 
+  // Recordings can also be put in the audio/ folder next to index.html and named in the admin page.
+  const audioFileUrl = (name) =>
+    "audio/" + String(name).trim().replace(/^(\.\/)?audio\//, "").split("/").map(encodeURIComponent).join("/");
+
+  function audioFileExists(name) {
+    return new Promise((resolve) => {
+      const probe = new Audio();
+      probe.preload = "metadata";
+      probe.addEventListener("loadedmetadata", () => resolve(true), { once: true });
+      probe.addEventListener("error", () => resolve(false), { once: true });
+      setTimeout(() => resolve(false), 5000);
+      probe.src = audioFileUrl(name);
+    });
+  }
+
   const SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
 
   const player = (() => {
@@ -269,14 +284,21 @@
         audio.src = SILENT_WAV;
         audio.play().catch(() => {});
       },
-      async load(key, btn) {
+      // An uploaded recording wins; otherwise the named file in the audio/ folder is used.
+      async load(key, btn, file) {
         stop();
         button = btn;
         const clip = await clips.get(key);
-        if (!clip?.blob || button !== btn) return false;
-        if (url) URL.revokeObjectURL(url);
-        url = URL.createObjectURL(clip.blob);
-        audio.src = url;
+        let src = null;
+        if (clip?.blob) {
+          if (url) URL.revokeObjectURL(url);
+          url = URL.createObjectURL(clip.blob);
+          src = url;
+        } else if (String(file || "").trim() && (await audioFileExists(file))) {
+          src = audioFileUrl(file);
+        }
+        if (!src || button !== btn) return false;
+        audio.src = src;
         btn.hidden = false;
         return true;
       },
@@ -301,9 +323,9 @@
     return button;
   }
 
-  async function attachAudio(content, key, autoplay) {
+  async function attachAudio(content, key, autoplay, file) {
     const button = content.querySelector(".audio-btn");
-    if (!button || !(await player.load(key, button))) return;
+    if (!button || !(await player.load(key, button, file))) return;
     button.addEventListener("click", (e) => {
       e.stopPropagation();
       player.toggle();
@@ -511,7 +533,8 @@
     document.body.classList.toggle("card-mode", content.classList.contains("card-stage"));
     player.stop();
     swapStage(content, animate).then(() => content.onShow?.());
-    if (audioKey) attachAudio(content, audioKey, index < n);
+    const audioFile = current?.kind === "puzzle" ? current.puzzle.audioFile : config[current?.kind ?? "final"]?.audioFile;
+    if (audioKey) attachAudio(content, audioKey, index < n, audioFile);
   }
 
   function terminal(id, title, status = "● SECURE") {
@@ -1017,7 +1040,8 @@
           </label>
           <label class="field"><span>Success text</span><textarea data-path="puzzles.${i}.successText" rows="2" placeholder="Empty = continue automatically"></textarea></label>
           <label class="field"><span>Failure text</span><textarea data-path="puzzles.${i}.failureText" rows="2"></textarea></label>
-          <div class="field span2"><span>Recording (plays when this puzzle opens)</span><div class="audio-row"></div></div>
+          <div class="field span2"><span>Recording (plays when this puzzle opens)</span><div class="audio-row"></div>
+            <input data-path="puzzles.${i}.audioFile" data-audio-file class="mono" autocomplete="off" placeholder="…or a file name in the audio/ folder, e.g. egmont.m4a"><small class="hint"></small></div>
         </div>`;
       card.querySelector(".audio-row").dataset.audio = draft.puzzles[i].id;
       return card;
@@ -1107,7 +1131,25 @@
       updateHints();
       renderProgress();
       renderAudioRows();
+      checkAudioFiles();
     }
+
+    // Shows next to each "audio/ folder" field whether the file can be found.
+    async function checkAudioFiles() {
+      for (const input of root.querySelectorAll("[data-audio-file]")) {
+        const hint = input.nextElementSibling;
+        const name = input.value.trim();
+        if (!name) {
+          hint.textContent = "";
+          continue;
+        }
+        const found = await audioFileExists(name);
+        if (input.value.trim() !== name) continue;
+        hint.textContent = found ? `✓ Found ${audioFileUrl(name)}` : `✗ Not found – put the file in the audio/ folder next to index.html`;
+        hint.classList.toggle("bad", !found);
+      }
+    }
+    let fileCheckTimer = 0;
 
     function save() {
       const errors = validate();
@@ -1144,6 +1186,10 @@
       setPath(draft, path, e.target.type === "checkbox" ? e.target.checked : e.target.value);
       markDirty();
       updateHints();
+      if (e.target.matches("[data-audio-file]")) {
+        clearTimeout(fileCheckTimer);
+        fileCheckTimer = setTimeout(checkAudioFiles, 400);
+      }
     });
 
     root.addEventListener("click", (e) => {
