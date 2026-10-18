@@ -12,6 +12,7 @@ window.DEFAULT_CONFIG = {
       charset: "digits",
       successText: "Firewall bypassed. Routing to next node…",
       failureText: "Invalid code. Intrusion attempt logged.",
+      audioFile: "egmont.m4a",
     },
     {
       id: "p2",
@@ -21,6 +22,7 @@ window.DEFAULT_CONFIG = {
       charset: "alnum",
       successText: "Decryption successful. Key accepted.",
       failureText: "Checksum mismatch. Try again.",
+      audioFile: "",
     },
     {
       id: "p3",
@@ -30,10 +32,12 @@ window.DEFAULT_CONFIG = {
       charset: "digits",
       successText: "",
       failureText: "Wrong moment. The timelock holds.",
+      audioFile: "",
     },
   ],
   breach: {
     enabled: true,
+    audioFile: "",
     title: "CPR-registret",
     helpText: "Den sidste fil ligger i CPR-registret.\nHack CPR-registret med koden {code}.",
     code: "123456",
@@ -42,6 +46,7 @@ window.DEFAULT_CONFIG = {
   },
   final: {
     enabled: true,
+    audioFile: "",
     helpText: "One last file is still encrypted.\nWhose record is this – and what is their number?",
     cpr: "0101261234",
     region: "Region\nHovedstaden",
