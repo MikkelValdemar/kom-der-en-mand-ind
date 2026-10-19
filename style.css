@@ -245,7 +245,8 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
 
 .puzzle-title {
   margin: 0 0 16px;
-  padding-right: 52px;
+  padding: 0 52px;
+  text-align: center;
   font-family: var(--crt);
   font-weight: 400;
   font-size: clamp(2rem, 6vw, 3rem);
