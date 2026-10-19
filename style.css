@@ -261,6 +261,7 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
   font-size: clamp(.98rem, 2.4vw, 1.12rem);
   line-height: 1.7;
   white-space: pre-line;
+  text-align: center;
   color: var(--fg-soft);
   text-shadow: 0 0 6px rgba(61, 255, 110, .35);
 }
