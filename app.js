@@ -752,9 +752,9 @@
 
   const range = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
   const HEX_GROUPS = [
+    ["0–9", range(0x30, 0x39)],
     ["A–Z", range(0x41, 0x5a)],
     ["a–z", range(0x61, 0x7a)],
-    ["0–9", range(0x30, 0x39)],
     ["Æ Ø Å", [0xc6, 0xd8, 0xc5, 0xe6, 0xf8, 0xe5]],
   ];
 
