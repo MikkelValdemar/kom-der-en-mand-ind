@@ -101,11 +101,15 @@
             <span>Help text</span>
             <textarea data-path="final.helpText" rows="2"></textarea>
           </label>
-          <label class="field">
+          <div class="field">
             <span>CPR number (answer)</span>
-            <input data-path="final.cpr" class="mono" autocomplete="off" placeholder="DDMMYY-XXXX">
+            <input data-path="final.cpr" class="mono" autocomplete="off" placeholder="DDMMYY-XXXX" aria-label="CPR number">
             <small class="hint" id="cpr-hint"></small>
-          </label>
+            <div class="gender-switch" role="group" aria-label="Gender">
+              <button type="button" class="btn-admin" data-act="gender" data-gender="girl">♀ Girl · ends 0002</button>
+              <button type="button" class="btn-admin" data-act="gender" data-gender="boy">♂ Boy · ends 0001</button>
+            </div>
+          </div>
           <div class="field">
             <span>Recording (plays when the card appears)</span>
             <div class="audio-row" data-audio="final"></div>

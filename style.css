@@ -951,6 +951,9 @@ body.card-mode .crt::before, body.card-mode .crt::after { display: none; }
 .hint { font-size: .78rem; color: var(--fg); }
 .hint.bad { color: #ff8070; }
 
+.gender-switch { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.gender-switch .btn-admin.active { background: var(--fg); color: var(--ink); border-color: var(--fg); }
+
 .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
 .swatches i { width: 18px; height: 18px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255, 255, 255, .25); }
 

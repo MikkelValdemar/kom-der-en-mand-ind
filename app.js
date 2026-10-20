@@ -1085,6 +1085,8 @@
       const cprNode = $("#cpr-hint");
       cprNode.textContent = cpr.text;
       cprNode.classList.toggle("bad", cpr.bad);
+      const gender = cpr.bad ? "" : Number(normalize(draft.final.cpr)[9]) % 2 === 1 ? "boy" : "girl";
+      root.querySelectorAll("[data-gender]").forEach((b) => b.classList.toggle("active", b.dataset.gender === gender));
 
       const swatches = $("#confetti-swatches");
       swatches.replaceChildren(...parseColors(draft.final.confettiColors).map((c) => {
@@ -1301,6 +1303,13 @@
           puzzles.splice(i, 1);
           markDirty();
           render();
+          break;
+        // In a real CPR number the last digit is odd for a boy and even for a girl.
+        case "gender":
+          draft.final.cpr = normalize(draft.final.cpr).slice(0, 6) + (button.dataset.gender === "boy" ? "0001" : "0002");
+          root.querySelector('[data-path="final.cpr"]').value = draft.final.cpr;
+          markDirty();
+          updateHints();
           break;
         case "save":
           save();
