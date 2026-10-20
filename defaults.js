@@ -41,8 +41,8 @@ window.DEFAULT_CONFIG = {
       helpText: "Gå ind på kontoret og find ud af det.",
       answer: "123456789",
       charset: "alnum",
-      successText: "Decryption successful. Key accepted.",
-      failureText: "Checksum mismatch. Try again.",
+      successText: "Stærkt. I er der næsten!",
+      failureText: "Så tæt på. Prøv igen.",
       audioFile: "",
     }
   ],
