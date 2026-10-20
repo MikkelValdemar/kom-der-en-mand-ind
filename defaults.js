@@ -8,7 +8,7 @@ window.DEFAULT_CONFIG = {
       id: "p1",
       title: "Hvem er forældrene?",
       helpText: "Åben konvolutten med et X på og se om i kan finde ud af det.",
-      answer: "53-54-4F-52-4B",
+      answer: "53-74-6F-72-6B",
       charset: "alnum",
       successText: "Korrekt! Hvem skulle ha troet det?",
       failureText: "Forkert. Men den er sgu også svær.",
