@@ -59,7 +59,7 @@
 
   // Each puzzle has a stable id so its recording follows it when puzzles are reordered.
   function blankPuzzle() {
-    return { id: newId(), title: "", helpText: "", answer: "", charset: "digits", successText: "", failureText: "", audioFile: "" };
+    return { id: newId(), title: "", helpText: "", answer: "", charset: "digits", successText: "", failureText: "", audioFile: "", hint: "" };
   }
 
   function normalizeConfig(raw) {
@@ -682,6 +682,7 @@
     const hackLog = el("div", "hack-log");
     hackLog.hidden = true;
     body.append(audioButton(), title, help, el("div", "prompt", "INDTAST KODE"), pin.el, banner, hackLog, message, actions);
+    if (puzzle.hint === "hex") body.append(hexHint());
     setGhost(title, puzzle.title);
     setGhost(help, puzzle.helpText);
     term.onShow = async () => {
@@ -742,6 +743,76 @@
 
     term.addEventListener("click", () => pin.focus());
     return term;
+  }
+
+  /* ---------- Hint ---------- */
+
+  const range = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  const HEX_GROUPS = [
+    ["A–Z", range(0x41, 0x5a)],
+    ["a–z", range(0x61, 0x7a)],
+    ["0–9", range(0x30, 0x39)],
+    ["Æ Ø Å", [0xc6, 0xd8, 0xc5, 0xe6, 0xf8, 0xe5]],
+  ];
+
+  // A hint button that asks for confirmation before showing a hex → ASCII table.
+  function hexHint() {
+    const wrap = el("div", "hint-box");
+    const button = el("button", "hint-btn", "? Hint");
+    button.type = "button";
+    button.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!(await confirmHint())) return;
+      button.replaceWith(hexTable());
+      wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    wrap.append(button);
+    return wrap;
+  }
+
+  function confirmHint() {
+    return new Promise((resolve) => {
+      const dialog = el("dialog", "warn");
+      const yes = el("button", "btn", "Ja, vis hint");
+      const no = el("button", "btn", "Nej");
+      yes.type = no.type = "button";
+      const buttons = el("div", "warn-actions");
+      buttons.append(no, yes);
+      dialog.append(
+        el("div", "warn-title", "⚠ Advarsel"),
+        el("p", "warn-text", "Dette er et hint – er du sikker på, at du vil fortsætte?"),
+        buttons,
+      );
+      const close = (value) => {
+        dialog.close();
+        dialog.remove();
+        resolve(value);
+      };
+      yes.addEventListener("click", () => close(true));
+      no.addEventListener("click", () => close(false));
+      dialog.addEventListener("cancel", (e) => {
+        e.preventDefault();
+        close(false);
+      });
+      document.body.append(dialog);
+      dialog.showModal();
+      no.focus();
+    });
+  }
+
+  function hexTable() {
+    const table = el("div", "hex-table");
+    table.append(el("div", "hex-head", "HEX → ASCII"));
+    for (const [label, codes] of HEX_GROUPS) {
+      const grid = el("div", "hex-grid");
+      for (const code of codes) {
+        const cell = el("div", "hex-cell");
+        cell.append(el("b", "", code.toString(16).toUpperCase().padStart(2, "0")), el("span", "", String.fromCharCode(code)));
+        grid.append(cell);
+      }
+      table.append(el("div", "hex-label", label), grid);
+    }
+    return table;
   }
 
   function cardStage(solved) {
@@ -1046,6 +1117,12 @@
           </label>
           <label class="field"><span>Success text</span><textarea data-path="puzzles.${i}.successText" rows="2" placeholder="Empty = continue automatically"></textarea></label>
           <label class="field"><span>Failure text</span><textarea data-path="puzzles.${i}.failureText" rows="2"></textarea></label>
+          <label class="field span2"><span>Hint button (asks “are you sure?” before showing)</span>
+            <select data-path="puzzles.${i}.hint">
+              <option value="">No hint</option>
+              <option value="hex">Hex → ASCII table</option>
+            </select>
+          </label>
           <div class="field span2"><span>Recording (plays when this puzzle opens)</span><div class="audio-row"></div>
             <input data-path="puzzles.${i}.audioFile" data-audio-file class="mono" autocomplete="off" placeholder="…or a file name in the audio/ folder, e.g. egmont.m4a"><small class="hint"></small></div>
         </div>`;

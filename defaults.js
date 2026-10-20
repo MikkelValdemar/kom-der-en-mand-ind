@@ -13,6 +13,7 @@ window.DEFAULT_CONFIG = {
       successText: "Korrekt! Hvem skulle ha troet det?",
       failureText: "Forkert. Men den er sgu også svær.",
       audioFile: "",
+      hint: "hex",
     },
     {
       id: "p2",

@@ -757,6 +757,96 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
   text-shadow: var(--glow);
 }
 
+/* ---------- Hint ---------- */
+
+.hint-box { margin-top: 26px; text-align: center; }
+
+.hint-btn {
+  font-family: var(--crt);
+  font-size: 1.25rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  background: transparent;
+  border: 1px dashed var(--fg-dim);
+  padding: 3px 18px 1px;
+  cursor: pointer;
+}
+.hint-btn:hover, .hint-btn:focus-visible { outline: none; color: var(--fg); border-color: var(--fg); text-shadow: var(--glow); }
+
+.warn {
+  width: min(440px, calc(100vw - 32px));
+  padding: 0;
+  font-family: var(--mono);
+  color: var(--fg-soft);
+  background: var(--bg);
+  border: 1px solid var(--red);
+  box-shadow: 0 0 40px rgba(255, 61, 61, .35), inset 0 0 40px rgba(255, 61, 61, .08);
+  animation: pop .3s steps(3);
+}
+.warn::backdrop { background: rgba(0, 0, 0, .75); }
+.warn-title {
+  padding: 4px 14px 2px;
+  font-family: var(--crt);
+  font-size: 1.3rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: #1a0000;
+  background: var(--red);
+}
+.warn-text {
+  margin: 0;
+  padding: 22px 22px 6px;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  text-align: center;
+}
+.warn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 22px 22px;
+}
+.warn .btn { font-size: 1.35rem; padding: 3px 16px 1px; }
+
+.hex-table {
+  padding: 14px;
+  text-align: left;
+  border: 1px solid var(--fg-line);
+  background: var(--fg-faint);
+  animation: pop .3s steps(3);
+}
+.hex-head {
+  font-family: var(--crt);
+  font-size: 1.5rem;
+  letter-spacing: .2em;
+  text-align: center;
+  color: var(--fg);
+  text-shadow: var(--glow);
+}
+.hex-label {
+  margin: 12px 0 6px;
+  font-size: .75rem;
+  letter-spacing: .2em;
+  color: var(--fg-dim);
+}
+.hex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+  gap: 4px;
+}
+.hex-cell {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 8px 0;
+  font-family: var(--crt);
+  font-size: 1.35rem;
+  border: 1px solid rgba(61, 255, 110, .18);
+}
+.hex-cell b { font-weight: normal; color: var(--fg-dim); }
+.hex-cell span { color: var(--fg); text-shadow: var(--glow); }
+
 /* ---------- Confetti ---------- */
 
 #confetti {
