@@ -387,6 +387,7 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
   text-align: center;
 }
 .banner.show { display: block; animation: banner-blink .9s steps(1); }
+.banner.sign { font-size: clamp(3rem, 12vw, 5rem); line-height: 1; letter-spacing: 0; }
 .banner.granted { color: var(--fg); background: rgba(61, 255, 110, .1); text-shadow: var(--glow); }
 .banner.denied { color: var(--red); background: rgba(255, 61, 61, .1); text-shadow: var(--red-glow); }
 .banner.denied::after {

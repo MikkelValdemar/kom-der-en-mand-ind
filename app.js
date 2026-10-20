@@ -94,6 +94,9 @@
   const pad = (n) => String(n).padStart(2, "0");
 
   // The game's stages in order: the puzzles, then the CPR-register hack, then the card.
+  // In a real CPR number the last digit is odd for a boy and even for a girl.
+  const isBoy = (final) => Number(normalize(final.cpr).slice(-1)) % 2 === 1;
+
   function stagesOf(cfg) {
     const stages = cfg.puzzles.map((puzzle, i) => ({
       kind: "puzzle",
@@ -479,8 +482,8 @@
     statusEl.textContent = `${pad(k + 1)}/${pad(n)}`;
   }
 
-  function showBanner(node, granted) {
-    node.textContent = granted ? "KORREKT" : "FORKERT";
+  function showBanner(node, granted, text) {
+    node.textContent = text || (granted ? "KORREKT" : "FORKERT");
     node.dataset.text = node.textContent;
     node.className = "banner " + (granted ? "granted" : "denied");
     replay(node, "show");
@@ -882,8 +885,11 @@
       pin.lock(true);
       pin.setState("correct");
       card.classList.add("won");
-      showBanner(banner, true);
-      showMessage(message, f.successText, "ok", 60);
+      const boy = isBoy(f);
+      // U+FE0E keeps the sign as a text glyph instead of an emoji.
+      showBanner(banner, true, boy ? "♂\uFE0E" : "♀\uFE0E");
+      banner.classList.add("sign");
+      showMessage(message, boy ? f.successTextBoy : f.successTextGirl, "ok", 60);
       setTimeout(() => message.scrollIntoView({ behavior: "smooth", block: "nearest" }), 400);
       if (celebrate) setTimeout(() => confetti.celebrate(parseColors(f.confettiColors)), 250);
     };
@@ -1085,7 +1091,7 @@
       const cprNode = $("#cpr-hint");
       cprNode.textContent = cpr.text;
       cprNode.classList.toggle("bad", cpr.bad);
-      const gender = cpr.bad ? "" : Number(normalize(draft.final.cpr)[9]) % 2 === 1 ? "boy" : "girl";
+      const gender = cpr.bad ? "" : isBoy(draft.final) ? "boy" : "girl";
       root.querySelectorAll("[data-gender]").forEach((b) => b.classList.toggle("active", b.dataset.gender === gender));
 
       const swatches = $("#confetti-swatches");
@@ -1304,7 +1310,6 @@
           markDirty();
           render();
           break;
-        // In a real CPR number the last digit is odd for a boy and even for a girl.
         case "gender":
           draft.final.cpr = normalize(draft.final.cpr).slice(0, 6) + (button.dataset.gender === "boy" ? "0001" : "0002");
           root.querySelector('[data-path="final.cpr"]').value = draft.final.cpr;
