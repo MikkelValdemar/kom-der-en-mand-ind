@@ -3,9 +3,9 @@
 
   const CONFIG_KEY = "escape.config";
   const DEFAULT_CONFETTI = ["#f2c14e", "#e8743b", "#7cc6a4", "#f7a1c4", "#8ab6f9", "#ffffff"];
-  const CHARSET_FILTERS = {
-    digits: /[^0-9]/g,
-    alnum: /[^0-9A-ZÆØÅÄÖÜ]/g,
+  const CHARSETS = {
+    digits: "0-9",
+    alnum: "0-9A-ZÆØÅÄÖÜ",
   };
 
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -13,6 +13,12 @@
   const normalize = (s) => String(s ?? "").replace(/[\s-]/g, "").toUpperCase();
 
   // Dashes in an answer split the code boxes into groups: "1A-2B-3C" → [2, 2, 2].
+  // Symbols in an answer that its charset doesn't cover (e.g. "#") can still be typed.
+  function extraChars(answer, charset) {
+    const base = new RegExp(`[${CHARSETS[charset] || CHARSETS.alnum}]`);
+    return [...new Set(normalize(answer))].filter((c) => !base.test(c)).join("");
+  }
+
   function groupsOf(answer) {
     const groups = String(answer ?? "").split("-").map((part) => normalize(part).length).filter(Boolean);
     return groups.length ? groups : [1];
@@ -352,9 +358,10 @@
 
   /* ---------- PIN input ---------- */
 
-  function createPinInput({ groups, charset, variant }) {
+  function createPinInput({ groups, charset, variant, extra = "" }) {
     const total = groups.reduce((a, b) => a + b, 0);
-    const filter = CHARSET_FILTERS[charset] || CHARSET_FILTERS.alnum;
+    const escaped = extra.replace(/[\\\]^-]/g, "\\$&");
+    const filter = new RegExp(`[^${CHARSETS[charset] || CHARSETS.alnum}${escaped}]`, "g");
     const root = el("div", "pin" + (variant ? " " + variant : ""));
     const row = el("div", "slots");
     row.style.setProperty("--n", total);
@@ -379,7 +386,8 @@
     input.setAttribute("autocapitalize", "characters");
     input.setAttribute("autocorrect", "off");
     input.setAttribute("aria-label", "Kode");
-    input.inputMode = charset === "digits" ? "numeric" : "text";
+    // The phone keypad ("tel") also has # * +, the plain number pad doesn't.
+    input.inputMode = charset !== "digits" ? "text" : !extra ? "numeric" : /^[#*+]+$/.test(extra) ? "tel" : "text";
     row.append(input);
     root.append(row);
 
@@ -687,12 +695,12 @@
     message.setAttribute("aria-live", "polite");
     const actions = el("div", "actions");
 
-    const pin = createPinInput({ groups: groupsOf(puzzle.answer), charset: puzzle.charset });
+    const pin = createPinInput({ groups: groupsOf(puzzle.answer), charset: puzzle.charset, extra: extraChars(puzzle.answer, puzzle.charset) });
     activePin = pin;
 
     // An optional gate code has to be entered before the real code boxes and the recording appear.
     const gateCode = String(puzzle.gateCode || "").trim();
-    const gate = gateCode ? createPinInput({ groups: groupsOf(gateCode), charset: "alnum" }) : null;
+    const gate = gateCode ? createPinInput({ groups: groupsOf(gateCode), charset: "alnum", extra: extraChars(gateCode, "alnum") }) : null;
     const revealer = el("div", "gate-reveal");
     let openGate = () => {};
     if (gate) {
@@ -1098,11 +1106,12 @@
     function answerHint(p) {
       const v = normalize(p.answer);
       if (!v) return { text: "An answer is required", bad: true };
-      if (p.charset === "digits" && /\D/.test(v)) return { text: "Contains letters – choose “Letters + digits”", bad: true };
-      if (v.replace(CHARSET_FILTERS.alnum, "") !== v) return { text: "Only letters and digits can be typed", bad: true };
+      if (p.charset === "digits" && /[A-ZÆØÅÄÖÜ]/.test(v)) return { text: "Contains letters – choose “Letters + digits”", bad: true };
+      const extra = extraChars(p.answer, p.charset);
+      const symbols = extra ? ` · also allows ${[...extra].join(" ")}` : "";
       const groups = groupsOf(p.answer);
-      if (groups.length > 1) return { text: `${v.length} characters in ${groups.length} groups (${groups.join("-")})`, bad: false };
-      return { text: `${v.length}-character code`, bad: false };
+      if (groups.length > 1) return { text: `${v.length} characters in ${groups.length} groups (${groups.join("-")})${symbols}`, bad: false };
+      return { text: `${v.length}-character code${symbols}`, bad: false };
     }
 
     function cprHint(f) {
