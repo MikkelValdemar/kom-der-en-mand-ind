@@ -59,7 +59,17 @@
     set(key, value) {
       try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
     },
+    remove(key) {
+      try { localStorage.removeItem(key); } catch {}
+    },
   };
+
+  // A fingerprint of defaults.js, saved with the setup. When defaults.js changes, an older saved setup is dropped.
+  const DEFAULTS_STAMP = (() => {
+    let h = 5381;
+    for (const ch of JSON.stringify(window.DEFAULT_CONFIG)) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0;
+    return h.toString(36);
+  })();
 
   const newId = () => "p" + Math.random().toString(36).slice(2, 9);
 
@@ -85,10 +95,14 @@
   }
 
   function loadConfig() {
-    const raw = store.get(CONFIG_KEY);
+    let raw = store.get(CONFIG_KEY);
+    if (raw && raw.defaultsStamp !== DEFAULTS_STAMP) {
+      store.remove(CONFIG_KEY);
+      raw = null;
+    }
     const config = normalizeConfig(raw);
     // Persist ids handed out to an older setup, so the game and admin agree on them.
-    if (Array.isArray(raw?.puzzles) && raw.puzzles.some((p) => !p.id)) store.set(CONFIG_KEY, config);
+    if (Array.isArray(raw?.puzzles) && raw.puzzles.some((p) => !p.id)) store.set(CONFIG_KEY, { ...config, defaultsStamp: DEFAULTS_STAMP });
     return config;
   }
 
@@ -1319,7 +1333,7 @@
         setStatus(errors[0] + (errors.length > 1 ? ` (+${errors.length - 1} more)` : ""), "error");
         return false;
       }
-      if (!store.set(CONFIG_KEY, draft)) {
+      if (!store.set(CONFIG_KEY, { ...draft, defaultsStamp: DEFAULTS_STAMP })) {
         setStatus("Could not save – is browser storage blocked?", "error");
         return false;
       }
