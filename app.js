@@ -343,6 +343,7 @@
       button.hidden = true;
       await content.audioGate;
       button.hidden = false;
+      button.classList.add("fade-in");
       player.play(button);
       return;
     }
@@ -692,16 +693,17 @@
     // An optional gate code has to be entered before the real code boxes and the recording appear.
     const gateCode = String(puzzle.gateCode || "").trim();
     const gate = gateCode ? createPinInput({ groups: groupsOf(gateCode), charset: "alnum" }) : null;
+    const revealer = el("div", "gate-reveal");
     let openGate = () => {};
     if (gate) {
-      pin.el.hidden = true;
+      revealer.append(pin.el);
       activePin = gate;
       term.audioGate = new Promise((resolve) => (openGate = resolve));
     }
 
     const hackLog = el("div", "hack-log");
     hackLog.hidden = true;
-    body.append(audioButton(), title, help, el("div", "prompt", "INDTAST KODE"), ...(gate ? [gate.el] : []), pin.el, banner, hackLog, message, actions);
+    body.append(audioButton(), title, help, el("div", "prompt", "INDTAST KODE"), ...(gate ? [gate.el, revealer] : [pin.el]), banner, hackLog, message, actions);
     if (puzzle.hint === "hex") body.append(hexHint());
     setGhost(title, puzzle.title);
     setGhost(help, puzzle.helpText);
@@ -731,20 +733,20 @@
       gate.lock(true);
       if (normalize(value) !== normalize(gateCode)) return reject(gate);
 
+      // The gate stays unlocked in green while the real code boxes slide open below it.
       const token = stageToken;
       gate.setState("correct");
-      showBanner(banner, true);
+      banner.className = "banner";
       message.replaceChildren();
       setTimeout(() => {
         if (token !== stageToken) return;
-        gate.el.remove();
-        banner.className = "banner";
-        pin.el.hidden = false;
+        revealer.classList.add("open");
+        revealer.addEventListener("transitionend", () => revealer.classList.add("done"), { once: true });
         activePin = pin;
         pin.focus();
         openGate();
         busy = false;
-      }, 1100);
+      }, 500);
     });
 
     pin.onComplete((value) => {
