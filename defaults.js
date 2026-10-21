@@ -6,8 +6,8 @@ window.DEFAULT_CONFIG = {
   puzzles: [
     {
       id: "p1",
-      title: "Hvem er forældrene?",
-      helpText: "Åben konvolutten med et X på og se om i kan finde ud af det.",
+      title: "λ",
+      helpText: "",
       answer: "53-74-6F-72-6B",
       charset: "alnum",
       successText: "Korrekt! Hvem skulle ha troet det?",
@@ -17,8 +17,8 @@ window.DEFAULT_CONFIG = {
     },
     {
       id: "p2",
-      title: "Er kønnet gået jeres næse forbi?",
-      helpText: "Kig i kassen og se om i kan komme det nærmere.",
+      title: "ξ",
+      helpText: "",
       answer: "1234",
       charset: "digits",
       successText: "Meget flot. Camullah har trænet jer godt",
@@ -27,8 +27,8 @@ window.DEFAULT_CONFIG = {
     },
     {
       id: "p3",
-      title: "I er kommet til KLUB100. Måske musikken kan hjælpe med at komme videre?",
-      helpText: "Lyt med og se om i kan finde ledetrådene.",
+      title: "μ",
+      helpText: "",
       answer: "95-6-1-99-8-2",
       charset: "digits",
       successText: "Korrekt. I er så dygtige.",
@@ -37,8 +37,8 @@ window.DEFAULT_CONFIG = {
     },
     {
       id: "p4",
-      title: "Hvor kan man finde personen til maj?",
-      helpText: "Gå ind på kontoret og find ud af det.",
+      title: "φ",
+      helpText: "",
       answer: "123456789",
       charset: "alnum",
       successText: "Stærkt. I er der næsten!",
@@ -49,8 +49,8 @@ window.DEFAULT_CONFIG = {
   breach: {
     enabled: true,
     audioFile: "",
-    title: "CPR-registret",
-    helpText: "Det sidste spor ligger her. Kan i få adgang?",
+    title: "σ",
+    helpText: "",
     code: "123456",
     successText: "Fuld hackermode. Lets gooo!",
     failureText: "Forkert. I har heller ikke meget forstand på EDB.",
@@ -58,7 +58,7 @@ window.DEFAULT_CONFIG = {
   final: {
     enabled: true,
     audioFile: "",
-    helpText: "Hvad er CPR-nummeret?",
+    helpText: "η",
     cpr: "0505270001",
     region: "Region\nHovedstaden",
     municipality: "Københavns Kommune",

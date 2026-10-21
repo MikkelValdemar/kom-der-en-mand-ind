@@ -670,6 +670,12 @@
     await wait(300);
   }
 
+  // A one- or two-letter title (e.g. a Greek letter) is shown large and keeps its case.
+  function isGlyph(text) {
+    const n = [...String(text ?? "").trim()].length;
+    return n > 0 && n <= 2;
+  }
+
   function puzzlePanel(puzzle, index, extra = {}) {
     const { term, body } = terminal(extra.id || `LOCK ${pad(index + 1)}`, extra.bar || "/// encrypted", extra.status);
     const title = el("h2", "puzzle-title");
@@ -686,6 +692,7 @@
     hackLog.hidden = true;
     body.append(audioButton(), title, help, el("div", "prompt", "INDTAST KODE"), pin.el, banner, hackLog, message, actions);
     if (puzzle.hint === "hex") body.append(hexHint());
+    title.classList.toggle("glyph", isGlyph(puzzle.title));
     setGhost(title, puzzle.title);
     setGhost(help, puzzle.helpText);
     term.onShow = async () => {
@@ -874,6 +881,7 @@
     const groups = answer.length === 10 ? [6, 4] : [Math.max(1, answer.length)];
     const pin = createPinInput({ groups, charset: "digits", variant: "card" });
     card.querySelector(".hc-cpr").append(pin.el);
+    help.classList.toggle("glyph", isGlyph(f.helpText));
     wrap.append(head, help, audioButton(), card, banner, message);
 
     const headText = "> DECRYPTING RECORD :: SUNDHEDSKORT.DAT";
