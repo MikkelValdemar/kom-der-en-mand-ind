@@ -6,7 +6,7 @@ window.DEFAULT_CONFIG = {
   puzzles: [
     {
       id: "p1",
-      title: "λ",
+      title: "lambda",
       helpText: "",
       answer: "53-74-6F-72-6B",
       charset: "alnum",
@@ -17,7 +17,7 @@ window.DEFAULT_CONFIG = {
     },
     {
       id: "p2",
-      title: "ξ",
+      title: "xi",
       helpText: "",
       answer: "1234",
       charset: "digits",
@@ -27,17 +27,18 @@ window.DEFAULT_CONFIG = {
     },
     {
       id: "p3",
-      title: "μ",
+      title: "mu",
       helpText: "",
       answer: "95-6-1-99-8-2",
       charset: "digits",
       successText: "Korrekt. I er så dygtige.",
       failureText: "Forkert. Håbløst forsøg.",
       audioFile: "gender-reveal.m4a",
+      gateCode: "KLUB100",
     },
     {
       id: "p4",
-      title: "φ",
+      title: "phi",
       helpText: "",
       answer: "123456789",
       charset: "alnum",
@@ -49,7 +50,7 @@ window.DEFAULT_CONFIG = {
   breach: {
     enabled: true,
     audioFile: "",
-    title: "σ",
+    title: "sigma",
     helpText: "",
     code: "123456",
     successText: "Fuld hackermode. Lets gooo!",
@@ -58,7 +59,8 @@ window.DEFAULT_CONFIG = {
   final: {
     enabled: true,
     audioFile: "",
-    helpText: "η",
+    title: "eta",
+    helpText: "",
     cpr: "0505270001",
     region: "Region\nHovedstaden",
     municipality: "Københavns Kommune",

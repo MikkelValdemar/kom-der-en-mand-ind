@@ -15,7 +15,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -106,7 +106,11 @@
           <label class="toggle"><input type="checkbox" data-path="final.enabled"> <span>Enabled</span></label>
         </div>
         <div class="grid">
-          <label class="field span2">
+          <label class="field">
+            <span>Title</span>
+            <input data-path="final.title" autocomplete="off">
+          </label>
+          <label class="field">
             <span>Help text</span>
             <textarea data-path="final.helpText" rows="2"></textarea>
           </label>

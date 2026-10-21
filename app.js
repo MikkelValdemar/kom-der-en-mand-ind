@@ -59,7 +59,7 @@
 
   // Each puzzle has a stable id so its recording follows it when puzzles are reordered.
   function blankPuzzle() {
-    return { id: newId(), title: "", helpText: "", answer: "", charset: "digits", successText: "", failureText: "", audioFile: "", hint: "" };
+    return { id: newId(), title: "", helpText: "", answer: "", charset: "digits", successText: "", failureText: "", audioFile: "", hint: "", gateCode: "" };
   }
 
   function normalizeConfig(raw) {
@@ -339,6 +339,13 @@
       e.stopPropagation();
       player.toggle();
     });
+    if (content.audioGate) {
+      button.hidden = true;
+      await content.audioGate;
+      button.hidden = false;
+      player.play(button);
+      return;
+    }
     if (autoplay) setTimeout(() => player.play(button), 650);
   }
 
@@ -670,15 +677,9 @@
     await wait(300);
   }
 
-  // A one- or two-letter title (e.g. a Greek letter) is shown large and keeps its case.
-  function isGlyph(text) {
-    const n = [...String(text ?? "").trim()].length;
-    return n > 0 && n <= 2;
-  }
-
   function puzzlePanel(puzzle, index, extra = {}) {
     const { term, body } = terminal(extra.id || `LOCK ${pad(index + 1)}`, extra.bar || "/// encrypted", extra.status);
-    const title = el("h2", "puzzle-title");
+    const title = el("h2", "puzzle-title keep-case");
     const help = el("p", "help");
     const banner = el("div", "banner");
     const message = el("p", "message");
@@ -688,11 +689,20 @@
     const pin = createPinInput({ groups: groupsOf(puzzle.answer), charset: puzzle.charset });
     activePin = pin;
 
+    // An optional gate code has to be entered before the real code boxes and the recording appear.
+    const gateCode = String(puzzle.gateCode || "").trim();
+    const gate = gateCode ? createPinInput({ groups: groupsOf(gateCode), charset: "alnum" }) : null;
+    let openGate = () => {};
+    if (gate) {
+      pin.el.hidden = true;
+      activePin = gate;
+      term.audioGate = new Promise((resolve) => (openGate = resolve));
+    }
+
     const hackLog = el("div", "hack-log");
     hackLog.hidden = true;
-    body.append(audioButton(), title, help, el("div", "prompt", "INDTAST KODE"), pin.el, banner, hackLog, message, actions);
+    body.append(audioButton(), title, help, el("div", "prompt", "INDTAST KODE"), ...(gate ? [gate.el] : []), pin.el, banner, hackLog, message, actions);
     if (puzzle.hint === "hex") body.append(hexHint());
-    title.classList.toggle("glyph", isGlyph(puzzle.title));
     setGhost(title, puzzle.title);
     setGhost(help, puzzle.helpText);
     term.onShow = async () => {
@@ -700,26 +710,49 @@
       await typeText(help, puzzle.helpText, 22);
     };
 
+    const reject = (input) => {
+      input.setState("wrong");
+      showBanner(banner, false);
+      showMessage(message, puzzle.failureText, "fail");
+      replay(term, "wrong", 700);
+      replay(document.body, "glitch", 500);
+      setTimeout(() => {
+        input.clear();
+        input.setState("");
+        input.lock(false);
+        input.focus();
+        busy = false;
+      }, 900);
+    };
+
+    gate?.onComplete((value) => {
+      if (busy) return;
+      busy = true;
+      gate.lock(true);
+      if (normalize(value) !== normalize(gateCode)) return reject(gate);
+
+      const token = stageToken;
+      gate.setState("correct");
+      showBanner(banner, true);
+      message.replaceChildren();
+      setTimeout(() => {
+        if (token !== stageToken) return;
+        gate.el.remove();
+        banner.className = "banner";
+        pin.el.hidden = false;
+        activePin = pin;
+        pin.focus();
+        openGate();
+        busy = false;
+      }, 1100);
+    });
+
     pin.onComplete((value) => {
       if (busy) return;
       busy = true;
       pin.lock(true);
 
-      if (normalize(value) !== normalize(puzzle.answer)) {
-        pin.setState("wrong");
-        showBanner(banner, false);
-        showMessage(message, puzzle.failureText, "fail");
-        replay(term, "wrong", 700);
-        replay(document.body, "glitch", 500);
-        setTimeout(() => {
-          pin.clear();
-          pin.setState("");
-          pin.lock(false);
-          pin.focus();
-          busy = false;
-        }, 900);
-        return;
-      }
+      if (normalize(value) !== normalize(puzzle.answer)) return reject(pin);
 
       const token = stageToken;
       pin.setState("correct");
@@ -751,7 +784,7 @@
       }
     });
 
-    term.addEventListener("click", () => pin.focus());
+    term.addEventListener("click", () => activePin?.focus());
     return term;
   }
 
@@ -829,6 +862,7 @@
     const f = config.final;
     const wrap = el("section", "card-stage");
     const head = el("div", "card-head");
+    const title = el("h2", "puzzle-title keep-case");
     const help = el("p", "card-help");
     const banner = el("div", "banner");
     const message = el("p", "message");
@@ -881,11 +915,11 @@
     const groups = answer.length === 10 ? [6, 4] : [Math.max(1, answer.length)];
     const pin = createPinInput({ groups, charset: "digits", variant: "card" });
     card.querySelector(".hc-cpr").append(pin.el);
-    help.classList.toggle("glyph", isGlyph(f.helpText));
-    wrap.append(head, help, audioButton(), card, banner, message);
+    wrap.append(head, title, help, audioButton(), card, banner, message);
 
     const headText = "> DECRYPTING RECORD :: SUNDHEDSKORT.DAT";
     setGhost(head, headText);
+    setGhost(title, f.title);
     setGhost(help, f.helpText);
 
     const win = (celebrate) => {
@@ -912,6 +946,8 @@
       wrap.onShow = () => {
         setGhost(head, "");
         head.textContent = headText;
+        setGhost(title, "");
+        title.textContent = f.title;
         setGhost(help, "");
         help.textContent = f.helpText;
         win(true);
@@ -921,6 +957,7 @@
 
     wrap.onShow = async () => {
       await typeText(head, headText, 18);
+      await typeText(title, f.title, 45);
       reveal();
       await wait(900);
       await typeText(help, f.helpText, 22);
@@ -1133,7 +1170,8 @@
           </label>
           <label class="field"><span>Success text</span><textarea data-path="puzzles.${i}.successText" rows="2" placeholder="Empty = continue automatically"></textarea></label>
           <label class="field"><span>Failure text</span><textarea data-path="puzzles.${i}.failureText" rows="2"></textarea></label>
-          <label class="field span2"><span>Hint button (asks “are you sure?” before showing)</span>
+          <label class="field"><span>Gate code (must be typed before the code boxes and recording appear)</span><input data-path="puzzles.${i}.gateCode" class="mono" autocomplete="off" placeholder="Empty = no gate"></label>
+          <label class="field"><span>Hint button (asks “are you sure?” before showing)</span>
             <select data-path="puzzles.${i}.hint">
               <option value="">No hint</option>
               <option value="hex">Hex → ASCII table</option>

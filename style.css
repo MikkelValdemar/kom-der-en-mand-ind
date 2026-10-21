@@ -243,6 +243,8 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
   padding: clamp(22px, 5vw, 38px) clamp(18px, 5vw, 40px) clamp(24px, 5vw, 34px);
 }
 
+.puzzle-title.keep-case { text-transform: none; }
+
 .puzzle-title {
   margin: 0 0 16px;
   padding: 0 52px;
@@ -539,18 +541,6 @@ body.glitch #game { animation: screen-glitch .45s steps(1) both; }
 }
 .card-help:empty { display: none; }
 
-/* VT323 lacks most Greek letters, so glyph titles use a font that has them all. */
-.puzzle-title.glyph, .card-help.glyph {
-  font-family: "JetBrains Mono", var(--crt);
-  font-weight: 500;
-  font-size: clamp(3.6rem, 12vw, 5.5rem);
-  line-height: 1;
-  letter-spacing: 0;
-  text-transform: none;
-  text-align: center;
-  color: var(--fg);
-  text-shadow: var(--glow);
-}
 
 .hc {
   position: relative;
