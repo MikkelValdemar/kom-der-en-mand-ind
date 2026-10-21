@@ -522,8 +522,15 @@
     activePin?.focus();
   }
 
+  // Recolors the whole page: "girl", "boy" or "" for the default green.
+  function setTheme(theme) {
+    document.documentElement.classList.toggle("girl", theme === "girl");
+    document.documentElement.classList.toggle("boy", theme === "boy");
+  }
+
   function renderGame({ animate = false } = {}) {
     config = loadConfig();
+    setTheme("");
     stageToken++;
     const stages = stagesOf(config);
     const n = stages.length;
@@ -943,7 +950,9 @@
       banner.classList.add("sign");
       showMessage(message, boy ? f.successTextBoy : f.successTextGirl, "ok", 60);
       setTimeout(() => message.scrollIntoView({ behavior: "smooth", block: "nearest" }), 400);
-      if (celebrate) setTimeout(() => confetti.celebrate(parseColors(f.confettiColors)), 250);
+      const colors = parseColors(boy ? f.confettiColorsBoy : f.confettiColorsGirl);
+      setTimeout(() => setTheme(boy ? "boy" : "girl"), 250);
+      if (celebrate) setTimeout(() => confetti.celebrate(colors), 250);
     };
 
     const reveal = () => {
@@ -1059,12 +1068,16 @@
     resize();
 
     setInterval(() => {
-      ctx.fillStyle = "rgba(1, 5, 2, 0.14)";
+      // Colours come from the theme tokens so the rain follows the pink/blue reveal.
+      const css = getComputedStyle(document.documentElement);
+      const fg = css.getPropertyValue("--fg").trim();
+      const soft = css.getPropertyValue("--fg-soft").trim();
+      ctx.fillStyle = "rgba(1, 2, 2, 0.14)";
       ctx.fillRect(0, 0, w, h);
       ctx.font = `${size}px VT323, monospace`;
       cols.forEach((row, i) => {
         if (row >= 0) {
-          ctx.fillStyle = Math.random() < 0.08 ? "#d6ffe0" : "#3dff6e";
+          ctx.fillStyle = Math.random() < 0.08 ? soft : fg;
           ctx.fillText("0123456789ABCDEF"[(Math.random() * 16) | 0], i * size, row * size);
         }
         cols[i] = row * size > h && Math.random() > 0.97 ? Math.floor(Math.random() * -20) : row + 1;
@@ -1150,12 +1163,13 @@
       const gender = cpr.bad ? "" : isBoy(draft.final) ? "boy" : "girl";
       root.querySelectorAll("[data-gender]").forEach((b) => b.classList.toggle("active", b.dataset.gender === gender));
 
-      const swatches = $("#confetti-swatches");
-      swatches.replaceChildren(...parseColors(draft.final.confettiColors).map((c) => {
-        const dot = el("i");
-        dot.style.background = c;
-        return dot;
-      }));
+      for (const g of ["Boy", "Girl"]) {
+        $(`#confetti-swatches-${g.toLowerCase()}`).replaceChildren(...parseColors(draft.final[`confettiColors${g}`]).map((c) => {
+          const dot = el("i");
+          dot.style.background = c;
+          return dot;
+        }));
+      }
     }
 
     function puzzleCard(i, count) {
@@ -1484,6 +1498,7 @@
     document.body.classList.toggle("is-admin", isAdmin);
     player.stop();
     if (isAdmin) {
+      setTheme("");
       activePin = null;
       document.title = "Game master";
       admin.open();

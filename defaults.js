@@ -76,6 +76,7 @@ window.DEFAULT_CONFIG = {
     successTextBoy: "Der kommer en mand ud ♥",
     successTextGirl: "Tillykke med det stærkeste køn ♥",
     failureText: "Forkert CPR-nummer – prøv igen.",
-    confettiColors: "#f2c14e, #e8743b, #7cc6a4, #f7a1c4, #8ab6f9, #ffffff",
+    confettiColorsBoy: "#4da6ff, #1e6fd9, #8ac4ff, #c6e2ff, #0a4ea3, #ffffff",
+    confettiColorsGirl: "#ff5caa, #ff2d87, #ff9fcb, #ffc6e1, #d61b6e, #ffffff",
   },
 };
